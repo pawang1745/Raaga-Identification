@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Know Your Raga - A System for Raga-Identification</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background image overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--bg-image, none);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo i {
+            font-size: 60px;
+            color: #fff;
+            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.9);
+            font-weight: 300;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 1s ease;
+            text-align: center;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .instruction-text {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 45px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .upload-btn i {
+            font-size: 1.3rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            margin-top: 25px;
+            padding: 18px 25px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: #333;
+            border-radius: 15px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            animation: slideIn 0.5s ease;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .file-info i {
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .file-info-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            display: none;
+            margin: 30px auto 0;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .loading-text {
+            color: #667eea;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .result {
+            display: none;
+            margin-top: 40px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .result-icon {
+            font-size: 70px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .raga-name {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            margin: 30px 0;
+            text-shadow: none;
+            letter-spacing: 2px;
+        }
+
+        .confidence-container {
+            display: none;
+        }
+
+        .new-analysis-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-top: 30px;
+        }
+
+        .new-analysis-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .error {
+            display: none;
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            animation: shake 0.5s ease;
+        }
+
+        .features {
+            display: none;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .card {
+                padding: 30px 20px;
+            }
+            .raga-name {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-music"></i>
+            </div>
+            <h1>Know Your Raga</h1>
+            <p class="subtitle">A System for Raga-Identification</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-section">
+                <p class="instruction-text">Upload your song to discover its Raga</p>
+                
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-upload"></i>
+                    Choose Song
+                </button>
+                
+                <input type="file" id="fileInput" accept=".wav,.mp3,.flac,.ogg,.m4a">
+                
+                <div class="file-info" id="fileInfo">
+                    <i class="fas fa-music"></i>
+                    <span class="file-info-text" id="fileName"></span>
+                </div>
+
+                <button class="analyze-btn" id="analyzeBtn">
+                    <i class="fas fa-sparkles"></i> Identify Raga
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Analyzing your music...</div>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="result" id="result">
+                <div class="result-header">
+                    <div class="result-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="result-title">The Raga is</div>
+                </div>
+
+                <div class="raga-name" id="ragaName"></div>
+
+                <div class="confidence-container">
+                    <div class="confidence-label">
+                        <i class="fas fa-chart-line"></i> Confidence Score
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill">0%</div>
+                    </div>
+                </div>
+
+                <center>
+                    <button class="new-analysis-btn" onclick="resetAnalysis()">
+                        <i class="fas fa-redo"></i> Try Another Song
+                    </button>
+                </center>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <i class="fas fa-waveform-path"></i>
+                    <div class="feature-title">MFCC Analysis</div>
+                    <div class="feature-desc">Mel-frequency cepstral coefficients</div>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-wave-square"></i>
+                    <div class="feature-title">Chroma Features</div>
+                    <div class="feature-desc">Pitch class representation</div>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-chart-area"></i>
+                    <div class="feature-title">Spectral Analysis</div>
+                    <div class="feature-desc">Frequency domain features</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const ragaName = document.getElementById('ragaName');
+
+        let selectedFile = null;
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            const validExtensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!validExtensions.includes(fileExtension)) {
+                showError('Please upload a valid audio file (MP3, WAV, FLAC, OGG, or M4A)');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileInfo.style.display = 'flex';
+            analyzeBtn.style.display = 'block';
+            hideError();
+            result.style.display = 'none';
+        }
+
+        analyzeBtn.addEventListener('click', analyzeRaga);
+
+        async function analyzeRaga() {
+            if (!selectedFile) return;
+
+            hideError();
+            result.style.display = 'none';
+            loading.style.display = 'block';
+            analyzeBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Could not identify the Raga. Please try another song.');
+                }
+
+                loading.style.display = 'none';
+                displayResult(data.raga, data.confidence);
+            } catch (err) {
+                loading.style.display = 'none';
+                showError(err.message);
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function displayResult(raga, confidence) {
+            ragaName.textContent = raga;
+            result.style.display = 'block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function hideError() {
+            error.style.display = 'none';
+        }
+
+        function resetAnalysis() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            analyzeBtn.style.display = 'none';
+            analyzeBtn.disabled = false;
+            result.style.display = 'none';
+            hideError();
+        }
+
+        // Add custom background image support
+        function setBackgroundImage(imageUrl) {
+            document.body.style.setProperty('--bg-image', `url('${imageUrl}')`);
+        }
+
+        // Example: setBackgroundImage('/static/background.jpg');
+    </script>
+</body>
+</html>
